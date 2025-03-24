@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session, joinedload
 from database import SessionLocal
 from typing import List, Optional
@@ -8,6 +8,7 @@ from models.failure import Failure
 from schemas.process_schema import ProcessCreate, ProcessResponse, RastreabilidadeResponse, DetalhesProcessoResponse, EtapaInfo, MaterialInfo
 from schemas.user_schema import UserSimple, UserResponse
 from schemas.failure_schema import FailureResponse
+
 router = APIRouter()
 
 def get_db():
@@ -18,7 +19,11 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=ProcessResponse)
-def registrar_etapa(process: ProcessCreate, db: Session = Depends(get_db)):
+def registrar_etapa(process: ProcessCreate, db: Session = Depends(get_db), request: Request = None):
+    role = request.state.role
+    if role not in ["tecnico", "admin"]:
+        raise HTTPException(status_code=403, detail="Permissão negada")
+    
     # 1. Buscar material pelo serial
     material = db.query(Material).filter(Material.serial == process.serial_material).first()
     if not material:
@@ -64,7 +69,8 @@ def listar_processos(
     etapa_atual: Optional[str] = Query(None, description="Etapa atual: recebimento, lavagem, esterilizacao, distribuicao"),
     interrompido: Optional[bool] = Query(None, description="Se o processo foi interrompido por falha crítica"),
     com_falha: Optional[bool] = Query(None, description="Se o processo possui pelo menos uma falha"),
-    db: Session = Depends(get_db)
+    db: Session = Depends(get_db),
+    request: Request = None
 ):
     processos = db.query(Process).options(
         joinedload(Process.material),

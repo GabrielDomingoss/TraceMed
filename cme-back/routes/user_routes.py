@@ -1,38 +1,79 @@
-# routes/user_routes.py
-from fastapi import APIRouter, HTTPException, Depends
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from schemas.user_schema import UserCreate, UserResponse, UserLogin, TokenResponse
 from models.user import User
+from schemas.user_schema import UserCreate, UserResponse, UserUpdate
 from database import get_db
-from auth.handler import criar_token
-from passlib.context import CryptContext
-from auth.dependencies import get_current_user
+from utils.auth import get_password_hash
+from middlewares.auth import verificar_jwt
 
 router = APIRouter()
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
 
-@router.post("/register", response_model=UserResponse)
-def register(user: UserCreate, db: Session = Depends(get_db)):
-    if db.query(User).filter(User.email == user.email).first():
-        raise HTTPException(status_code=400, detail="Email já cadastrado")
-    
-    hashed_pw = pwd_context.hash(user.password)
-    novo_user = User(name=user.name, email=user.email, password=hashed_pw, role=user.role)
-    db.add(novo_user)
+# Apenas admin pode acessar
+def verificar_admin(request: Request):
+    if request.state.role != "admin":
+        raise HTTPException(status_code=403, detail="Acesso negado: apenas administradores")
+
+@router.get("/", response_model=list[UserResponse], dependencies=[Depends(verificar_jwt)])
+def listar_usuarios(request: Request, db: Session = Depends(get_db)):
+    verificar_admin(request)
+    usuarios = db.query(User).all()
+    return usuarios
+
+@router.post("/", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
+def criar_usuario(usuario: UserCreate, request: Request, db: Session = Depends(get_db)):
+    verificar_admin(request)
+
+    usuario_existente = db.query(User).filter(User.email == usuario.email).first()
+    if usuario_existente:
+        raise HTTPException(status_code=400, detail="Email já cadastrado.")
+
+    senha_hash = get_password_hash(usuario.password)
+    novo_usuario = User(
+        name=usuario.name,
+        email=usuario.email,
+        password=senha_hash,
+        role=usuario.role
+    )
+    db.add(novo_usuario)
     db.commit()
-    db.refresh(novo_user)
-    return novo_user
+    db.refresh(novo_usuario)
+    return novo_usuario
 
-@router.post("/login", response_model=TokenResponse)
-def login(user: UserLogin, db: Session = Depends(get_db)):
-    user_db = db.query(User).filter(User.email == user.email).first()
-    if not user_db or not pwd_context.verify(user.password, user_db.password):
-        raise HTTPException(status_code=400, detail="Credenciais inválidas")
-    
-    token = criar_token({"sub": user_db.email, "id": user_db.id, "role": user_db.role})
-    return {"access_token": token, "token_type": "bearer"}
+@router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
+def obter_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
+    verificar_admin(request)
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+    return usuario
 
-@router.get("/me", response_model=UserResponse)
-def me(current_user=Depends(get_current_user), db: Session = Depends(get_db)):
-    user = db.query(User).filter(User.email == current_user["sub"]).first()
-    return user
+@router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
+def atualizar_usuario(user_id: int, dados: UserUpdate, request: Request, db: Session = Depends(get_db)):
+    verificar_admin(request)
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    if dados.name:
+        usuario.name = dados.name
+    if dados.email:
+        usuario.email = dados.email
+    if dados.password:
+        usuario.password = get_password_hash(dados.password)
+    if dados.role:
+        usuario.role = dados.role
+
+    db.commit()
+    db.refresh(usuario)
+    return usuario
+
+@router.delete("/{user_id}", dependencies=[Depends(verificar_jwt)])
+def deletar_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
+    verificar_admin(request)
+    usuario = db.query(User).filter(User.id == user_id).first()
+    if not usuario:
+        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+
+    db.delete(usuario)
+    db.commit()
+    return {"mensagem": "Usuário deletado com sucesso"}

@@ -4,7 +4,7 @@ from sqlalchemy.orm import Session
 from database import get_db
 from models.user import User
 from schemas.user_schema import UserLogin, TokenResponse
-from utils.jwt_handler import create_access_token
+from utils.auth import create_access_token
 from passlib.context import CryptContext
 
 router = APIRouter()

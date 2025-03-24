@@ -1,5 +1,5 @@
 # routes/etapa_routes.py
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import get_db
 from models.process import Process
@@ -9,7 +9,11 @@ from schemas.process_schema import EtapaUpdate
 router = APIRouter()
 
 @router.put("/{process_id}/{etapa}", response_model=dict)
-def atualizar_etapa(process_id: int, etapa: str, dados: EtapaUpdate, db: Session = Depends(get_db)):
+def atualizar_etapa(process_id: int, etapa: str, dados: EtapaUpdate, db: Session = Depends(get_db), request: Request = None):
+    role = request.state.role
+    if role not in ["tecnico", "admin"]:
+        raise HTTPException(status_code=403, detail="Permissão negada")
+    
     process = db.query(Process).filter(Process.id == process_id).first()
     if not process:
         raise HTTPException(status_code=404, detail="Processo não encontrado")

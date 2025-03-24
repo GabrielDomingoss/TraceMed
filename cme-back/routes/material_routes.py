@@ -1,9 +1,8 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
 from database import SessionLocal
 from models.material import Material
 from schemas.material_schema import MaterialCreate, MaterialResponse
-from auth.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -15,7 +14,12 @@ def get_db():
         db.close()
 
 @router.post("/", response_model=MaterialResponse)
-def create_material(material: MaterialCreate, db: Session = Depends(get_db), user=Depends(get_current_user)):
+def create_material(material: MaterialCreate, db: Session = Depends(get_db), request: Request = None):
+    role = request.state.role
+    
+    if role not in ["tecnico", "admin"]:
+        raise HTTPException(status_code=403, detail="Permissão negada")
+    
     novo_material = Material(
         nome=material.nome,
         tipo=material.tipo,
@@ -27,5 +31,5 @@ def create_material(material: MaterialCreate, db: Session = Depends(get_db), use
     return novo_material
 
 @router.get("/", response_model=list[MaterialResponse])
-def list_materials(db: Session = Depends(get_db)):
+def list_materials(db: Session = Depends(get_db), request: Request = None):
     return db.query(Material).all()

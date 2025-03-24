@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, Query
+from fastapi import APIRouter, Depends, HTTPException, Query, Request
 from sqlalchemy.orm import Session
 from typing import List, Optional
 from database import SessionLocal
@@ -19,8 +19,11 @@ def get_db():
 
 # POST - Cadastrar nova falha
 @router.post("/", response_model=FailureResponse)
-def registrar_falha(falha: FailureCreate, db: Session = Depends(get_db)):
-    print(f"Recebido: {falha.dict()}")  # <- Isso ajuda bastante
+def registrar_falha(falha: FailureCreate, db: Session = Depends(get_db), request: Request = None):
+    role = request.state.role
+    if role not in ["tecnico", "admin"]:
+        raise HTTPException(status_code=403, detail="Permissão negada")
+    
     nova_falha = Failure(
         process_id=falha.process_id,
         etapa=falha.etapa,

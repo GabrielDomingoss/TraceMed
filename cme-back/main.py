@@ -1,11 +1,20 @@
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi import FastAPI
-from middleware.auth import AuthMiddleware
+from middlewares.auth import AuthMiddleware
 from middlewares.permissions import RoleMiddleware
-from routes import user_routes, material_routes, process_routes, failure_routes, etapa_routes, report_routes
+from middlewares.auth import verify_jwt_token
+from routes import (
+    user_routes, material_routes, process_routes,
+    failure_routes, etapa_routes, report_routes
+)
 import database
 
 app = FastAPI(title="TraceMed API")
+
+
+app.add_middleware(AuthMiddleware)
+app.add_middleware(RoleMiddleware)
+app.add_middleware("http")(verify_jwt_token)
 
 app.add_middleware(
     CORSMiddleware,
@@ -27,5 +36,3 @@ app.include_router(etapa_routes.router, prefix="/api/etapas", tags=["Etapas"])
 app.include_router(report_routes.router, prefix="/api/reports", tags=["Reports"])
 
 
-app.add_middleware(AuthMiddleware)
-app.add_middleware(RoleMiddleware)
