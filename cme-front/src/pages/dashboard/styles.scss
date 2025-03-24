@@ -1,0 +1,23 @@
+.dashboard-card {
+    min-height: 100%;
+    display: flex;
+    justify-content: space-between;
+    flex-direction: column;
+}
+
+.card-title {
+    span {
+        font-size: 1rem;
+    }
+}
+
+.card-indicators-content {
+    min-height: 100%;
+    min-width: 100%;
+    padding: 1rem !important;
+}
+
+.card-value {
+    display: flex;
+    justify-content: end;
+}

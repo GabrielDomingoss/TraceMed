@@ -1,0 +1,9 @@
+.app-bar {
+    transition: margin 0.3s ease-in-out, width 0.3s ease-in-out;
+    background-color: #ffffff!important;
+    box-shadow: 0px 2px 4px 0px #0000000D !important;
+}
+
+.app-bar.open {
+    transition: margin 0.3s ease-out, width 0.3s ease-out;
+}

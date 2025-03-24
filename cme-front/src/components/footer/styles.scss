@@ -1,0 +1,28 @@
+.loginFooter {
+    position: absolute;
+    bottom: 1rem;
+    left: 0.625rem;
+    font-size: 0.625rem;
+    font-weight: 400;
+    margin-left: 1rem;
+    color: #97A1A8;
+    line-height: 0.879rem;
+}
+
+.homeFooter {
+    background-color: #F5F5F5;
+    left: 0.625rem;
+    font-size: 0.75rem;
+    font-weight: 400;
+    padding: 2rem 1rem 1rem 1rem;
+    font-family: 'Poppins', Arial, sans-serif;
+    color: #97A1A8;
+    line-height: 0.879rem;
+    .textMiddle {
+        display: flex;
+        align-items: center;
+    }
+    a {
+        color: #97A1A8;
+    }
+}

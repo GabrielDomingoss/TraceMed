@@ -1,0 +1,36 @@
+.customAvatar {
+    width: 32;
+    height: 32;
+    background-color: #FE7C6E !important;
+}
+
+.username {
+    font-weight: 700;
+    line-height: 1.425rem;
+}
+
+.menu {
+    display: inline-flex;
+    color: #59666F
+}
+
+.welcome .MuiGrid-item{
+    width: max-content;
+    display: flex !important;
+    justify-content: end !important;
+}
+
+.notifications {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    margin-right: 1rem;
+    font-size: 0.875rem;
+}
+
+.notifications img {
+    display: flex;
+    justify-content: center;
+    width: 1.031rem;
+    height: 1rem;
+}
