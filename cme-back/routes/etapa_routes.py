@@ -5,18 +5,15 @@ from database import get_db
 from models.process import Process
 from models.failure import Failure
 from schemas.process_schema import EtapaUpdate
+from middlewares.auth import verificar_jwt
 
 router = APIRouter()
 
-@router.put("/{process_id}/{etapa}", response_model=dict)
-def atualizar_etapa(process_id: int, etapa: str, dados: EtapaUpdate, db: Session = Depends(get_db), request: Request = None):
-    role = request.state.role
-    if role not in ["tecnico", "admin"]:
-        raise HTTPException(status_code=403, detail="Permissão negada")
-    
+@router.put("/etapa/{process_id}/{etapa}", response_model=dict, dependencies=[Depends(verificar_jwt)])
+def update_stage(process_id: int, etapa: str, dados: EtapaUpdate, request: Request, db: Session = Depends(get_db)):
     process = db.query(Process).filter(Process.id == process_id).first()
     if not process:
-        raise HTTPException(status_code=404, detail="Processo não encontrado")
+        raise HTTPException(status_code=404, detail="Process not found")
 
     falha_critica = db.query(Failure).filter(
         Failure.process_id == process_id,
@@ -24,7 +21,7 @@ def atualizar_etapa(process_id: int, etapa: str, dados: EtapaUpdate, db: Session
     ).first()
 
     if falha_critica:
-        raise HTTPException(status_code=400, detail="Não é possível atualizar etapas após uma falha crítica.")
+        raise HTTPException(status_code=400, detail="Cannot update stages after a critical failure")
 
     if etapa == "recebimento":
         process.data_recebimento = dados.data
@@ -43,8 +40,8 @@ def atualizar_etapa(process_id: int, etapa: str, dados: EtapaUpdate, db: Session
         process.observacao_distribuicao = dados.observacao
         process.usuario_distribuicao_id = dados.usuario_id
     else:
-        raise HTTPException(status_code=400, detail="Etapa inválida.")
+        raise HTTPException(status_code=400, detail="Invalid stage")
 
     db.commit()
     db.refresh(process)
-    return {"mensagem": f"Etapa '{etapa}' atualizada com sucesso"}
+    return {"message": f"Stage '{etapa}' updated successfully"}

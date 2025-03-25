@@ -4,76 +4,76 @@ from models.user import User
 from schemas.user_schema import UserCreate, UserResponse, UserUpdate
 from database import get_db
 from utils.auth import get_password_hash
-from middlewares.auth import verificar_jwt
+from middlewares.auth import verify_jwt  # JWT middleware
 
 router = APIRouter()
 
-# Apenas admin pode acessar
-def verificar_admin(request: Request):
+# Admin role check
+def verify_admin(request: Request):
     if request.state.role != "admin":
-        raise HTTPException(status_code=403, detail="Acesso negado: apenas administradores")
+        raise HTTPException(status_code=403, detail="Access denied: admin only")
 
-@router.get("/", response_model=list[UserResponse], dependencies=[Depends(verificar_jwt)])
-def listar_usuarios(request: Request, db: Session = Depends(get_db)):
-    verificar_admin(request)
-    usuarios = db.query(User).all()
-    return usuarios
+@router.get("/", response_model=list[UserResponse], dependencies=[Depends(verify_jwt)])
+def list_users(request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+    users = db.query(User).all()
+    return users
 
-@router.post("/", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
-def criar_usuario(usuario: UserCreate, request: Request, db: Session = Depends(get_db)):
-    verificar_admin(request)
+@router.post("/", response_model=UserResponse, dependencies=[Depends(verify_jwt)])
+def create_user(user: UserCreate, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
 
-    usuario_existente = db.query(User).filter(User.email == usuario.email).first()
-    if usuario_existente:
-        raise HTTPException(status_code=400, detail="Email já cadastrado.")
+    existing_user = db.query(User).filter(User.email == user.email).first()
+    if existing_user:
+        raise HTTPException(status_code=400, detail="Email already registered")
 
-    senha_hash = get_password_hash(usuario.password)
-    novo_usuario = User(
-        name=usuario.name,
-        email=usuario.email,
-        password=senha_hash,
-        role=usuario.role
+    hashed_password = get_password_hash(user.password)
+    new_user = User(
+        name=user.name,
+        email=user.email,
+        password=hashed_password,
+        role=user.role
     )
-    db.add(novo_usuario)
+    db.add(new_user)
     db.commit()
-    db.refresh(novo_usuario)
-    return novo_usuario
+    db.refresh(new_user)
+    return new_user
 
-@router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
-def obter_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
-    verificar_admin(request)
-    usuario = db.query(User).filter(User.id == user_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
-    return usuario
+@router.get("/{user_id}", response_model=UserResponse, dependencies=[Depends(verify_jwt)])
+def get_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
+    return user
 
-@router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(verificar_jwt)])
-def atualizar_usuario(user_id: int, dados: UserUpdate, request: Request, db: Session = Depends(get_db)):
-    verificar_admin(request)
-    usuario = db.query(User).filter(User.id == user_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+@router.put("/{user_id}", response_model=UserResponse, dependencies=[Depends(verify_jwt)])
+def update_user(user_id: int, data: UserUpdate, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    if dados.name:
-        usuario.name = dados.name
-    if dados.email:
-        usuario.email = dados.email
-    if dados.password:
-        usuario.password = get_password_hash(dados.password)
-    if dados.role:
-        usuario.role = dados.role
+    if data.name:
+        user.name = data.name
+    if data.email:
+        user.email = data.email
+    if data.password:
+        user.password = get_password_hash(data.password)
+    if data.role:
+        user.role = data.role
 
     db.commit()
-    db.refresh(usuario)
-    return usuario
+    db.refresh(user)
+    return user
 
-@router.delete("/{user_id}", dependencies=[Depends(verificar_jwt)])
-def deletar_usuario(user_id: int, request: Request, db: Session = Depends(get_db)):
-    verificar_admin(request)
-    usuario = db.query(User).filter(User.id == user_id).first()
-    if not usuario:
-        raise HTTPException(status_code=404, detail="Usuário não encontrado")
+@router.delete("/{user_id}", dependencies=[Depends(verify_jwt)])
+def delete_user(user_id: int, request: Request, db: Session = Depends(get_db)):
+    verify_admin(request)
+    user = db.query(User).filter(User.id == user_id).first()
+    if not user:
+        raise HTTPException(status_code=404, detail="User not found")
 
-    db.delete(usuario)
+    db.delete(user)
     db.commit()
-    return {"mensagem": "Usuário deletado com sucesso"}
+    return {"message": "User deleted successfully"}

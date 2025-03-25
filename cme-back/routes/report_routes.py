@@ -1,3 +1,4 @@
+# routes/report_routes.py
 from fastapi import APIRouter, Depends
 from fastapi.responses import StreamingResponse, FileResponse
 from sqlalchemy.orm import Session, joinedload
@@ -9,27 +10,28 @@ from models.process import Process
 from models.failure import Failure
 from openpyxl import load_workbook
 from openpyxl.styles import Alignment
+from middlewares.auth import verify_jwt
 import pandas as pd
 import os
 
 router = APIRouter()
 
-@router.get("/pdf", response_class=StreamingResponse)
-def gerar_relatorio_pdf(db: Session = Depends(get_db)):
+@router.get("/pdf", response_class=StreamingResponse, dependencies=[Depends(verify_jwt)])
+def generate_pdf_report(db: Session = Depends(get_db)):
     processos = db.query(Process).all()
 
     pdf = FPDF()
     pdf.add_page()
     pdf.set_font("Arial", size=12)
 
-    def escrever_etapa(nome, data, observacao):
+    def write_stage(title, data, obs):
         if data:
-            data_formatada = data.strftime("%d/%m/%Y %H:%M")
-            texto = f"{nome}: {data_formatada} - {observacao or 'Sem observações'}"
+            formatted = data.strftime("%d/%m/%Y %H:%M")
+            text = f"{title}: {formatted} - {obs or 'Sem observações'}"
         else:
-            texto = f"{nome}: Não realizada"
+            text = f"{title}: Não realizada"
         pdf.set_x(10)
-        pdf.multi_cell(0, 8, txt=texto)
+        pdf.multi_cell(0, 8, txt=text)
 
     for processo in processos:
         pdf.set_font("Arial", "B", 12)
@@ -40,18 +42,18 @@ def gerar_relatorio_pdf(db: Session = Depends(get_db)):
         pdf.set_x(10)
         pdf.cell(0, 8, f"Material ID: {processo.material_id}", ln=True)
 
-        escrever_etapa("Recebimento", processo.data_recebimento, processo.observacao_recebimento)
-        escrever_etapa("Lavagem", processo.data_lavagem, processo.observacao_lavagem)
-        escrever_etapa("Esterilização", processo.data_esterilizacao, processo.observacao_esterilizacao)
-        escrever_etapa("Distribuição", processo.data_distribuicao, processo.observacao_distribuicao)
+        write_stage("Recebimento", processo.data_recebimento, processo.observacao_recebimento)
+        write_stage("Lavagem", processo.data_lavagem, processo.observacao_lavagem)
+        write_stage("Esterilização", processo.data_esterilizacao, processo.observacao_esterilizacao)
+        write_stage("Distribuição", processo.data_distribuicao, processo.observacao_distribuicao)
 
-        falhas = db.query(Failure).filter(Failure.process_id == processo.id).all()
-        if falhas:
+        failures = db.query(Failure).filter(Failure.process_id == processo.id).all()
+        if failures:
             pdf.set_x(10)
             pdf.cell(0, 10, "Falhas:", ln=True)
-            for falha in falhas:
-                critica = "Crítica" if falha.critical else "Comum"
-                texto = f"• {falha.etapa.capitalize()} - {critica}: {falha.descricao} ({falha.data.strftime('%d/%m/%Y %H:%M')})"
+            for falha in failures:
+                critica = "Sim" if falha.critical else "Não"
+                texto = f"• {falha.etapa.capitalize()} - {'Crítica' if falha.critical else 'Comum'}: {falha.descricao} ({falha.data.strftime('%d/%m/%Y %H:%M')})"
                 pdf.set_x(10)
                 pdf.multi_cell(0, 8, txt=texto)
 
@@ -65,8 +67,8 @@ def gerar_relatorio_pdf(db: Session = Depends(get_db)):
         "Content-Disposition": "inline; filename=relatorio_processos.pdf"
     })
 
-@router.get("/xlsx", response_class=FileResponse)
-def gerar_relatorio_xlsx(db: Session = Depends(get_db)):
+@router.get("/xlsx", response_class=FileResponse, dependencies=[Depends(verify_jwt)])
+def generate_xlsx_report(db: Session = Depends(get_db)):
     processos = db.query(Process).options(
         joinedload(Process.material),
         joinedload(Process.failures),
@@ -76,73 +78,57 @@ def gerar_relatorio_xlsx(db: Session = Depends(get_db)):
         joinedload(Process.usuario_distribuicao)
     ).all()
 
-    dados = []
+    data = []
     for processo in processos:
         row = {
             "ID Processo": processo.id,
             "Material": f"{processo.material.nome} (ID: {processo.material.id})",
             "Serial": processo.material.serial,
-            "Recebimento": formatar_etapa(processo.data_recebimento, processo.observacao_recebimento, processo.usuario_recebimento),
-            "Lavagem": formatar_etapa(processo.data_lavagem, processo.observacao_lavagem, processo.usuario_lavagem),
-            "Esterilização": formatar_etapa(processo.data_esterilizacao, processo.observacao_esterilizacao, processo.usuario_esterilizacao),
-            "Distribuição": formatar_etapa(processo.data_distribuicao, processo.observacao_distribuicao, processo.usuario_distribuicao),
-            "Falhas": formatar_falhas(processo.failures),
+            "Recebimento": format_stage(processo.data_recebimento, processo.observacao_recebimento, processo.usuario_recebimento),
+            "Lavagem": format_stage(processo.data_lavagem, processo.observacao_lavagem, processo.usuario_lavagem),
+            "Esterilização": format_stage(processo.data_esterilizacao, processo.observacao_esterilizacao, processo.usuario_esterilizacao),
+            "Distribuição": format_stage(processo.data_distribuicao, processo.observacao_distribuicao, processo.usuario_distribuicao),
+            "Falhas": format_failures(processo.failures),
             "Interrompido": "Sim" if any(f.critical for f in processo.failures) else "Não"
         }
-        dados.append(row)
+        data.append(row)
 
-    df = pd.DataFrame(dados)
+    df = pd.DataFrame(data)
 
-    nome_arquivo = f"relatorio_processos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
-    caminho = os.path.join("relatorios", nome_arquivo)
+    filename = f"relatorio_processos_{datetime.now().strftime('%Y%m%d_%H%M%S')}.xlsx"
+    path = os.path.join("relatorios", filename)
     os.makedirs("relatorios", exist_ok=True)
-    df.to_excel(caminho, index=False)
+    df.to_excel(path, index=False)
 
-    # Ajustes com openpyxl
-    wb = load_workbook(caminho)
+    wb = load_workbook(path)
     ws = wb.active
 
-    # Quebra de linha na coluna de falhas
-    col_falhas = 8  # H
     for row in range(2, ws.max_row + 1):
-        cell = ws.cell(row=row, column=col_falhas)
+        cell = ws.cell(row=row, column=8)
         cell.alignment = Alignment(wrap_text=True)
 
-        # Ajusta a altura da linha com base na quantidade de quebras
-        num_linhas = cell.value.count("\n") + 1 if cell.value else 1
-        ws.row_dimensions[row].height = num_linhas * 15
-
-    # Ajuste de largura automática
     for col in ws.columns:
-        max_length = 0
-        column = col[0].column_letter
-        for cell in col:
-            try:
-                if cell.value:
-                    max_length = max(max_length, len(str(cell.value)))
-            except:
-                pass
-        ws.column_dimensions[column].width = max_length + 2
+        max_length = max((len(str(cell.value)) for cell in col if cell.value), default=10)
+        col_letter = col[0].column_letter
+        ws.column_dimensions[col_letter].width = max_length + 5
 
-    wb.save(caminho)
+    wb.save(path)
 
-    return FileResponse(
-        caminho,
-        media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
-        filename=nome_arquivo
-    )
+    return FileResponse(path, media_type="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet", filename=filename)
 
-def formatar_etapa(data, observacao, usuario):
+def format_stage(data, obs, user):
     if not data:
         return "-"
-    user = f"{usuario.name} (ID: {usuario.id})" if usuario else "Usuário desconhecido"
-    obs = f" - {observacao}" if observacao else ""
-    return f"{data.strftime('%d/%m/%Y %H:%M')} - {user}{obs}"
+    user_info = f"{user.name} (ID: {user.id})" if user else "Usuário desconhecido"
+    obs_text = f" - {obs}" if obs else ""
+    return f"{data.strftime('%d/%m/%Y %H:%M')} - {user_info}{obs_text}"
 
-def formatar_falhas(falhas):
-    if not falhas:
+def format_failures(failures):
+    if not failures:
         return "-"
-    return "\n".join(
-        f"{f.etapa.capitalize()} - {'Crítica' if f.critical else 'Comum'}: {f.descricao} ({f.data.strftime('%d/%m/%Y %H:%M')})"
-        for f in falhas
-    )
+    lines = []
+    for f in failures:
+        tipo = "Crítica" if f.critical else "Comum"
+        data = f.data.strftime('%d/%m/%Y %H:%M') if f.data else "Data desconhecida"
+        lines.append(f"{f.etapa.capitalize()} - {tipo}: {f.descricao} ({data})")
+    return "\n".join(lines)

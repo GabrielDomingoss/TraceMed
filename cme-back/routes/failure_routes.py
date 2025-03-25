@@ -1,76 +1,43 @@
-from fastapi import APIRouter, Depends, HTTPException, Query, Request
+from fastapi import APIRouter, Depends, HTTPException, Request
 from sqlalchemy.orm import Session
-from typing import List, Optional
-from database import SessionLocal
 from models.failure import Failure
 from models.process import Process
 from schemas.failure_schema import FailureCreate, FailureResponse
-from datetime import datetime
+from database import get_db
+from middlewares.auth import verificar_jwt
 
 router = APIRouter()
 
-# Dependência para obter DB
-def get_db():
-    db = SessionLocal()
-    try:
-        yield db
-    finally:
-        db.close()
+@router.post("/", response_model=FailureResponse, dependencies=[Depends(verificar_jwt)])
+def create_failure(failure: FailureCreate, request: Request, db: Session = Depends(get_db)):
+    process = db.query(Process).filter(Process.id == failure.process_id).first()
+    if not process:
+        raise HTTPException(status_code=404, detail="Process not found")
 
-# POST - Cadastrar nova falha
-@router.post("/", response_model=FailureResponse)
-def registrar_falha(falha: FailureCreate, db: Session = Depends(get_db), request: Request = None):
-    role = request.state.role
-    if role not in ["tecnico", "admin"]:
-        raise HTTPException(status_code=403, detail="Permissão negada")
-    
-    nova_falha = Failure(
-        process_id=falha.process_id,
-        etapa=falha.etapa,
-        descricao=falha.descricao,
-        critical=falha.critical,
-        usuario_id=falha.usuario_id
+    new_failure = Failure(
+        process_id=failure.process_id,
+        etapa=failure.etapa,
+        descricao=failure.descricao,
+        critical=failure.critical,
+        usuario_id=failure.usuario_id,
+        data=failure.data
     )
-    db.add(nova_falha)
+    db.add(new_failure)
     db.commit()
-    db.refresh(nova_falha)
-    return nova_falha
+    db.refresh(new_failure)
+    return new_failure
 
-# GET - Listar failures por processo
-@router.get("/processo/{process_id}", response_model=list[FailureResponse])
-def listar_falhas_por_processo(process_id: int, db: Session = Depends(get_db)):
-    failures = db.query(Failure).filter(Failure.process_id == process_id).all()
-    if not failures:
-        raise HTTPException(status_code=404, detail="Nenhuma falha encontrada para este processo.")
-    return failures
+@router.get("/", response_model=list[FailureResponse], dependencies=[Depends(verificar_jwt)])
+def list_failures(db: Session = Depends(get_db)):
+    return db.query(Failure).all()
 
-@router.get("/", response_model=List[FailureResponse])
-def listar_falhas(
-    process_id: Optional[int] = None,
-    etapa: Optional[str] = None,
-    critical: Optional[bool] = None,
-    data_inicio: Optional[datetime] = Query(None, alias="data_inicio"),
-    data_fim: Optional[datetime] = Query(None, alias="data_fim"),
-    db: Session = Depends(get_db)
-):
-    query = db.query(Failure)
+@router.get("/by-process/{process_id}", response_model=list[FailureResponse], dependencies=[Depends(verificar_jwt)])
+def get_failures_by_process(process_id: int, db: Session = Depends(get_db)):
+    return db.query(Failure).filter(Failure.process_id == process_id).all()
 
-    if process_id:
-        query = query.filter(Failure.process_id == process_id)
-    if etapa:
-        query = query.filter(Failure.etapa == etapa)
-    if critical is not None:
-        query = query.filter(Failure.critical == critical)
-    if data_inicio:
-        query = query.filter(Failure.data >= data_inicio)
-    if data_fim:
-        query = query.filter(Failure.data <= data_fim)
-
-    return query.order_by(Failure.data.desc()).all()
-
-@router.get("/process/{process_id}", response_model=list[FailureResponse])
-def listar_falhas_por_processo(process_id: int, db: Session = Depends(get_db)):
-    failures = db.query(Failure).filter(Failure.process_id == process_id).order_by(Failure.data.desc()).all()
-    if not failures:
-        raise HTTPException(status_code=404, detail="Nenhuma falha encontrada para este processo.")
-    return failures
+@router.get("/{failure_id}", response_model=FailureResponse, dependencies=[Depends(verificar_jwt)])
+def get_failure(failure_id: int, db: Session = Depends(get_db)):
+    failure = db.query(Failure).filter(Failure.id == failure_id).first()
+    if not failure:
+        raise HTTPException(status_code=404, detail="Failure not found")
+    return failure
