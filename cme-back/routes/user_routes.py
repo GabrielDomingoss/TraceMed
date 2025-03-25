@@ -4,7 +4,7 @@ from models.user import User
 from schemas.user_schema import UserCreate, UserResponse, UserUpdate
 from database import get_db
 from utils.auth import get_password_hash
-from middlewares.auth import verify_jwt  # JWT middleware
+from middlewares.auth import verify_jwt
 
 router = APIRouter()
 
@@ -27,7 +27,8 @@ def create_user(user: UserCreate, request: Request, db: Session = Depends(get_db
     if existing_user:
         raise HTTPException(status_code=400, detail="Email already registered")
 
-    hashed_password = get_password_hash(user.password)
+    password = user.password or "teste123"
+    hashed_password = get_password_hash(password)
     new_user = User(
         name=user.name,
         email=user.email,

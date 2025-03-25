@@ -1,0 +1,66 @@
+.users-card {
+    background-color: transparent !important;
+    margin-top: 1rem;
+    padding: 0 !important;
+
+    &.MuiPaper-root {
+        box-shadow: none;
+        overflow: visible !important;
+    }
+
+    & .MuiCardContent-root {
+        padding: 0;
+    }
+
+    & .MuiDataGrid-root {
+        border: none;
+        background-color: #e6e8e6 !important;
+        box-shadow: 0px 3px 3px #afaeae !important;
+    }
+
+     .MuiDataGrid-row--borderBottom {
+        color: #f5f8fc;
+        background-color: #30597f !important;
+    }
+}
+
+.users-title {
+    color:#30597f;
+    font-size: 1.7rem !important;
+    font-weight: 700 !important;
+    margin-bottom: 2rem !important;
+}
+
+.add-container {
+    width: 100%;
+    display: flex;
+    justify-content: end;
+}
+
+.add-user-button, .confirm-button {
+    background-color: #30597f !important;
+
+    &:hover {
+        background-color: #4b8cc9 !important;
+    }
+}
+
+.create-dialog {
+    .MuiDialogTitle-root {
+        color: #30597f;
+    }
+
+    .MuiPaper-root {
+        background-color: #e6e8e6;
+    }
+
+    .cancel-button {
+        background-color: white;
+        color: #30597f;
+    }
+
+    .cancel-button:hover {
+        background-color: lightgray;
+        color: #30597f;
+    }
+}

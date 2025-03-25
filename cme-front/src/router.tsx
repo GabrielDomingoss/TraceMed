@@ -4,6 +4,8 @@ import { Dashboard } from "./pages/dashboard";
 import { DefaultLayout } from "./layout";
 import { ResetPassword } from "./pages/resetPassword";
 import { Users } from "./pages/users";
+import { Materials } from "./pages/materials";
+import { Tracebility } from "./pages/traceability";
 
 export function Router() {
     return (
@@ -13,6 +15,8 @@ export function Router() {
             <Route path="/" element={<DefaultLayout />}>
                 <Route path="/dashboard" element={<Dashboard />}></Route>
                 <Route path="/users" element={<Users />}></Route>
+                <Route path="/materials" element={<Materials />}></Route>
+                <Route path="/traceability" element={<Tracebility />}></Route>
             </Route>
         </Routes>
     )

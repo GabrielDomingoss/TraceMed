@@ -7,14 +7,14 @@ import { CssBaseline } from "@mui/material";
 function App() {
 
   return (
-    // <AuthProvider>
+    <AuthProvider>
       <LocalizationProvider dateAdapter={AdapterDayjs} adapterLocale="pt-br">
         <BrowserRouter>
           <Router />
         </BrowserRouter>
         <CssBaseline />
       </LocalizationProvider>
-    // </AuthProvider>
+    </AuthProvider>
   )
 }
 

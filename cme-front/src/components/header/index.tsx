@@ -1,42 +1,115 @@
-import { Grid, IconButton, Toolbar } from "@mui/material";
-// import AzapeLogo from '../../assets/logo.png';
-import AppBar from "./appBar";
-import { UserMenu } from "./userMenu";
+import { 
+    AppBar,
+    Box,
+    Button,
+    Drawer,
+    Grid,
+    IconButton,
+    Toolbar,
+    useMediaQuery,
+    useTheme
+} from "@mui/material";
+import Logo from '../../assets/traceMedLogo.png';
 import './styles.scss';
-import { NotificationMenu } from "./notificationsMenu";
+import { useNavigate } from "react-router-dom";
+import { useState } from "react";
+import { Menu } from "@mui/icons-material";
+import { useAuth } from "../../hooks/authProvider";
+import { Drawer as CustomDrawer } from "../drawer";
 
-interface HeaderProps {
-    open: boolean,
-    handleDrawerOpen: () => void
-    drawerWidth?: number
-}
-export function Header({
-    open,
-    handleDrawerOpen,
-    drawerWidth = 240,
-    ...props
-}: HeaderProps) {
+export function Header() {
+    const theme = useTheme();
+    const isMobile = useMediaQuery(theme.breakpoints.down("sm"));
+    const navigate = useNavigate();
+    const [mobileOpen, setMobileOpen] = useState(false);
+    const { logout } = useAuth();
+
+    const handleDrawerToggle = () => {
+        setMobileOpen(!mobileOpen);
+    };
+
+    const pages = [
+        { label: "Usuários", path: "/users" },
+        { label: "Materiais", path: "/materials" },
+        { label: "Rastreabilidade", path: "/traceability" },
+    ];
+
     return (
-        <AppBar position="fixed" drawerWidth={drawerWidth} open={open} {...props}>
-            <Toolbar>
-                <IconButton
-                    color="inherit"
-                    aria-label="open drawer"
-                    onClick={handleDrawerOpen}
-                    edge="start"
-                    sx={{ mr: 2, ...(open && { display: 'none' }) }}
-                >
-                    Logo
-                    {/* <img src={AzapeLogo} className="appBarLogo" alt="" /> */}
-                </IconButton>
+        <div>
+            <AppBar position="static" className="appBar">
+                <Toolbar >
+                    {isMobile && (
+                        <Grid className="mobileGrid">
+                            <IconButton
+                                color="inherit"
+                                aria-label="open drawer"
+                                edge="start"
+                                onClick={handleDrawerToggle}
+                                className="menuButton"
+                            >
+                                <Menu />
+                            </IconButton>
+                            <div className="logoMobile" onClick={() => {
+                                navigate('/dashboard')
+                            }}>
+                                <img src={Logo} alt="TraceMed" />
+                            </div>
+                        </Grid>
+                    )}
 
-                <Grid container display="flex" justifyContent={'end'}>
-                    <Grid item marginTop={'auto'} marginBottom={'auto'} display={"inline-flex"} color={"#59666F"}>
-                        <NotificationMenu></NotificationMenu>
-                        <UserMenu></UserMenu>
-                    </Grid>
-                </Grid>
-            </Toolbar>
-        </AppBar>
+                    {!isMobile && (
+                        <Grid className="webMainGrid">
+                            <Grid className="webSecondaryGrid">
+                                {pages.slice(0,2).map((page) => (
+                                    <Button
+                                        key={page.label}
+                                        color="inherit"
+                                        onClick={() => navigate(page.path)}
+                                        className="pageItem"
+                                    >
+                                        {page.label}
+                                    </Button>
+                                ))}
+
+                                <Box onClick={() => {
+                                    navigate('/dashboard')
+                                }}>
+                                    <img src={Logo} alt="TraceMed" className="webLogo"/>
+                                </Box>
+
+                                {pages.slice(2,4).map((page) => (
+                                    <Button
+                                        key={page.label}
+                                        color="inherit"
+                                        onClick={() => navigate(page.path)}
+                                        className="pageItem"
+                                    >
+                                        {page.label}
+                                    </Button>
+                                ))}
+                            </Grid>
+                            
+                            <Button className="logoutButton" onClick={logout}>
+                                Sair
+                            </Button>
+                        </Grid>
+                        
+                    )}
+                </Toolbar>
+            </AppBar>
+            <Box component="nav">
+                <Drawer
+                    variant="temporary"
+                    open={mobileOpen}
+                    onClose={handleDrawerToggle}
+                    ModalProps={{ keepMounted: true }}
+                    sx={{
+                        display: { xs: "block", sm: "none" },
+                    }}
+                >
+                    <CustomDrawer pages={pages}/>
+                </Drawer>
+            </Box>
+        </div>
     )
 }

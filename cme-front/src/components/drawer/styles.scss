@@ -1,59 +1,9 @@
-.customDrawer {
-    width: 15rem;
-    flex-shrink: 0;
-    & .MuiDrawer-paper {
-        width: 15rem;
-        box-sizing: border-box;
-        border: none;
-        box-shadow: 2px 0px 4px 0px #0000000D;
-    }
+.drawerBox {
+    text-align: center;
+    padding: 1.5rem;
 }
 
-.drawerHeader {
-    display: flex;
-    align-items: center;
-    padding: 0 0.5rem;
-    justify-content: center;
-    min-height: 4rem;
-}
-
-.appBarLogo {
-    // height: 3.188rem;
-    width: 17.5rem;
-    object-fit: contain;
-}
-
-.listItemButton {
-    background-color: #FE7C6E;
-    color: #ffffff;
-    display: flex;
-    width: 100%;
-    padding: 0.5rem;
-    border-radius: 0.5rem;
-}
-
-.chartIcon {
-    display: flex;
-    align-items: center;
-    align-self: center;
-    justify-content: center;
-}
-
-.chartIcon img{
-    width: 1rem !important;
-    height: 1rem !important;
-    font-family: 'Poppins', Arial, sans-serif;
-    font-weight: 400;
-    font-size: 0.875rem;
-    line-height: 1.313rem;
-}
-
-@media (max-width: 768px) {
-    .drawer {
-        width: 60px;
-    }
-
-    .drawer.open {
-        width: 200px;
-    }
+.drawerLogo {
+    height: 3.188rem;
+    margin-bottom: 1rem;
 }

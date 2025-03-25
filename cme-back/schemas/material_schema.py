@@ -1,5 +1,6 @@
 from pydantic import BaseModel
 from datetime import date
+from typing import Optional
 
 class MaterialBase(BaseModel):
     nome: str
@@ -8,6 +9,11 @@ class MaterialBase(BaseModel):
 
 class MaterialCreate(MaterialBase):
     pass
+
+class MaterialUpdate(BaseModel):
+    nome: Optional[str]
+    tipo: Optional[str]
+    data_validade: Optional[str] 
 
 class MaterialResponse(MaterialBase):
     id: int

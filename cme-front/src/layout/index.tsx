@@ -1,17 +1,13 @@
 import { useEffect, useState } from "react";
-import { useAuth } from "../hooks/authProvider";
-import { Drawer } from "../components/drawer";
 import { Container, Grid } from "@mui/material";
-import { Outlet } from "react-router-dom";
-import { Footer } from "../components/footer";
+import { Outlet, useNavigate } from "react-router-dom";
 import './styles.scss'
+import { Header } from "../components/header";
+import { useAuth } from "../hooks/authProvider";
 export function DefaultLayout() {
     const [open, setOpen] = useState(() => window.innerWidth > 768);
-    // const { isAuthenticated } = useAuth();
-
-    const handleDrawerOpen = () => {
-        setOpen(!open);
-    };
+    const { isAuthenticated, loading } = useAuth();
+    const navigate = useNavigate();
 
     useEffect(() => {
         const handleResize = () => {
@@ -21,26 +17,23 @@ export function DefaultLayout() {
         return () => window.removeEventListener("resize", handleResize);
     }, []);
 
+    
+    useEffect(() => {
+        if (!loading && !isAuthenticated) {
+          navigate('/login');
+        }
+      }, [isAuthenticated, loading, navigate]);
+      
     return (
         <div className="layoutBox">
-            <Drawer
-                open={open} 
-                handleDrawerOpen={handleDrawerOpen}
-                drawerWidth={240}
-            />
+            <Header />
             <main className={`main ${open ? "open" : "closed"}`}>
-                <div className="layoutDrawerHeader"/>
                 <Container>
                     <Grid marginTop={1}>
                         <Outlet />
                     </Grid>
                 </Container>
-
             </main>
-
-            <div className={`footerContainer ${open ? "open" : "closed"}`}>
-                {/* {isAuthenticated && <Footer />} */}
-            </div>
         </div>
     );
 }

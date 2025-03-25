@@ -2,3 +2,63 @@
     height: 3.188rem;
     width: 7.5rem;
 }
+
+.appBar {
+    background-color: #364752 !important;
+}
+
+.mobileGrid {
+    display: flex;
+    width: 100%;
+    padding: 0.5rem 0rem;
+}
+
+.menuButton {
+    margin-right: 1.5rem;
+}
+
+.logoMobile {
+    width: 100%;
+    display: flex;
+    justify-content: center;
+
+    img {
+        height: 2.9rem;
+    }
+}
+
+.webMainGrid {
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.webSecondaryGrid {
+    gap: 2rem;
+    display: flex;
+    width: 100%;
+    justify-content: center;
+}
+
+.pageItem, .logoutButton {
+    color: #dfe5ee !important;
+    font-weight: 500;
+}
+
+.webLogo{
+    width: 10rem;
+    cursor: pointer;
+    filter: brightness(100);
+}
+
+.logoutButton {
+    justify-self: "end"
+}
+
+.drawerHeader {
+    .MuiDrawer-paper{
+        background-color: #d1d2d1;
+        box-sizing: border-box;
+        width: 15rem;
+    }
+}

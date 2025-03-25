@@ -1,17 +1,26 @@
-import React from "react";
-import { Box, Grid, Typography, Card, CardContent, useTheme, useMediaQuery, CardHeader } from "@mui/material";
+import { Box, Grid, Typography, Card, CardContent, CardHeader } from "@mui/material";
 import HighchartsReact from "highcharts-react-official";
 import Highcharts from "highcharts";
 import "./styles.scss";
 
 export const Dashboard = () => {
   const chartOptionsPie = {
-    chart: { type: "pie" },
-    title: { text: "Materiais por Status" },
+    chart: { type: "pie", backgroundColor: "#e6e8e6" },
+    title: {
+      text: "Materiais por Status",
+      style: {
+        color: "#30597f",
+      }
+    },
+    colors: ['#345369', '#5e8faa', '#c2ccd5', '#44c6e7'],
+    credits: {
+      enabled: false
+    },
     series: [{
       name: "Materiais",
+      shadow: true,
       data: [
-        { name: "Recebimento", y: 30 },
+        { name: "Recebimento", y: 30, },
         { name: "Lavagem", y: 45 },
         { name: "Esterilização", y: 20 },
         { name: "Distribuição", y: 55 },
@@ -20,10 +29,19 @@ export const Dashboard = () => {
   };
 
   const chartOptionsBar = {
-    chart: { type: "column" },
-    title: { text: "Falhas por Etapa" },
+    chart: { type: "column", backgroundColor: "#e6e8e6" },
+    title: { 
+      text: "Falhas por Etapa",
+      style: {
+        color: "#30597f",
+      }
+    },
     xAxis: { categories: ["Recebimento", "Lavagem", "Esterilização", "Distribuição"] },
     yAxis: { title: { text: "Falhas Registradas" } },
+    colors: ["#185885"],
+    credits: {
+      enabled: false
+    },
     series: [{
       name: "Falhas",
       data: [5, 10, 3, 8],
